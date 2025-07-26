@@ -183,3 +183,37 @@ func (s *AuthService) UpdateProfile(userID uuid.UUID, req UpdateProfileRequest) 
 	response := user.ToResponse()
 	return &response, nil
 }
+
+func (s *AuthService) UpdateAvatar(userID uuid.UUID, avatarURL string) (*models.UserResponse, error) {
+	user, err := s.userRepo.GetByID(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	user.AvatarURL = avatarURL
+	if err := s.userRepo.Update(user); err != nil {
+		return nil, err
+	}
+
+	response := user.ToResponse()
+	return &response, nil
+}
+
+func (s *AuthService) DeleteAccount(userID uuid.UUID) error {
+	// In a real implementation, you might want to:
+	// 1. Soft delete (mark as deleted)
+	// 2. Remove personal data but keep game data for analytics
+	// 3. Transfer guild ownership if user is guild owner
+	// For now, we'll do a soft delete by updating a deleted_at field
+	
+	user, err := s.userRepo.GetByID(userID)
+	if err != nil {
+		return err
+	}
+
+	// Mark user as deleted (you might want to add a DeletedAt field to User model)
+	user.Email = "deleted_" + user.Email
+	user.Username = "deleted_" + user.Username
+	
+	return s.userRepo.Update(user)
+}

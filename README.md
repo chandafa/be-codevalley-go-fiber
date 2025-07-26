@@ -4,20 +4,31 @@ A complete REST API backend for "Code Valley" - an RPG life simulation game wher
 
 ## 🚀 Features
 
-- **User Management**: Registration, authentication, profile management
+- **User Management**: Registration, authentication, profile management, avatar upload
+- **Real-time WebSocket**: Live updates for quests, friends, achievements, and more
 - **Quest System**: Create, start, complete quests with rewards
+- **Friend System**: Add friends, see online status, social interactions
 - **Inventory System**: Manage tools, code snippets, and resources
-- **NPC Interactions**: Meet mentors, clients, and villagers
+- **NPC Interactions**: Meet mentors, clients, and villagers with relationship levels
 - **Daily Tasks**: Complete daily coding challenges
-- **Achievement System**: Unlock achievements based on progress
+- **Achievement & Badge System**: Unlock achievements and collect badges
+- **Skill Tree**: Upgrade programming skills and abilities
 - **Story Progress**: Track player's journey through chapters
-- **Code Battles**: Participate in coding challenges
-- **Admin Panel**: Manage game content and users
+- **Mini Games**: Coding challenges, puzzles, and brain teasers
+- **Crafting System**: Combine items to create new tools
+- **Shop & Economy**: Buy and sell items with coins
+- **Guild System**: Create and join programming communities
+- **Event System**: Participate in time-based missions and festivals
+- **Marketplace**: Trade items with other players
+- **Tutorial System**: Learn new programming concepts
+- **Statistics**: Comprehensive player analytics
+- **Admin Panel**: Manage game content, users, and analytics
 
 ## 🛠 Technical Stack
 
 - **Framework**: Go with Fiber web framework
 - **Database**: MySQL with GORM ORM
+- **WebSocket**: Real-time communication with gorilla/websocket
 - **Authentication**: JWT with bcrypt password hashing
 - **Architecture**: Clean architecture with layered design
 - **Middleware**: CORS, Rate limiting, Logging, Error handling
@@ -38,6 +49,7 @@ code-valley-api/
 │   ├── repositories/    # Data access layer
 │   ├── services/        # Business logic layer
 │   ├── routes/          # Route definitions
+│   ├── websocket/       # WebSocket hub and client management
 │   └── utils/           # Utility functions
 ├── seeders/             # Database seeders
 ├── .env.example         # Environment variables template
@@ -90,11 +102,11 @@ code-valley-api/
 ### Environment Variables
 
 ```env
-DB_HOST=pongo.kencang.com
+DB_HOST=localhost
 DB_PORT=3306
-DB_USER=academyc_root_pp
-DB_PASSWORD=Langkahpemula123
-DB_NAME=academyc_code_valley
+DB_USER=root
+DB_PASSWORD=your_password
+DB_NAME=code_valley
 PORT=8000
 
 JWT_SECRET=your-super-secret-jwt-key
@@ -107,6 +119,32 @@ RATE_LIMIT_EXPIRATION=1
 
 LOG_LEVEL=info
 ```
+
+## 🌐 WebSocket Connection
+
+Connect to WebSocket for real-time updates:
+```
+ws://localhost:8000/ws?token=YOUR_JWT_TOKEN
+```
+
+### WebSocket Events
+
+#### Outgoing Events (Server → Client)
+- `quest_update`: Quest progress changes
+- `friend_request`: Friend system notifications
+- `achievement_unlocked`: New achievements earned
+- `level_up`: Level progression updates
+- `user_status`: Friend online/offline status
+- `event_broadcast`: Global announcements
+- `dm_message`: Direct messages
+- `guild_invitation`: Guild invitations
+- `notification`: General notifications
+
+#### Incoming Events (Client → Server)
+- `ping`: Keep connection alive
+- `dm_message`: Send direct message
+- `dm_typing`: Typing indicator
+- `quest_update`: Quest progress update
 
 ## 📚 API Documentation
 
@@ -125,9 +163,11 @@ All API responses follow this structure:
 }
 ```
 
-### Authentication Endpoints
+---
 
-#### Register User
+## 🔐 Authentication Endpoints
+
+### Register User
 ```http
 POST /api/v1/auth/register
 Content-Type: application/json
@@ -139,7 +179,7 @@ Content-Type: application/json
 }
 ```
 
-#### Login
+### Login
 ```http
 POST /api/v1/auth/login
 Content-Type: application/json
@@ -150,13 +190,19 @@ Content-Type: application/json
 }
 ```
 
-#### Get Profile (Protected)
+### Logout
+```http
+POST /api/v1/auth/logout
+Authorization: Bearer <jwt-token>
+```
+
+### Get Profile
 ```http
 GET /api/v1/auth/me
 Authorization: Bearer <jwt-token>
 ```
 
-#### Update Profile (Protected)
+### Update Profile
 ```http
 PUT /api/v1/auth/profile
 Authorization: Bearer <jwt-token>
@@ -169,27 +215,44 @@ Content-Type: application/json
 }
 ```
 
-### Quest Endpoints
+### Upload Avatar
+```http
+POST /api/v1/auth/avatar
+Authorization: Bearer <jwt-token>
+Content-Type: multipart/form-data
 
-#### Get All Quests (Protected)
+avatar: <file>
+```
+
+### Delete Account
+```http
+DELETE /api/v1/auth/delete
+Authorization: Bearer <jwt-token>
+```
+
+---
+
+## 🎯 Quest System
+
+### Get All Quests
 ```http
 GET /api/v1/quests?page=1&per_page=10
 Authorization: Bearer <jwt-token>
 ```
 
-#### Get Quest Details (Protected)
+### Get Quest Details
 ```http
 GET /api/v1/quests/:id
 Authorization: Bearer <jwt-token>
 ```
 
-#### Start Quest (Protected)
+### Start Quest
 ```http
 POST /api/v1/quests/:id/start
 Authorization: Bearer <jwt-token>
 ```
 
-#### Complete Quest (Protected)
+### Complete Quest
 ```http
 POST /api/v1/quests/:id/complete
 Authorization: Bearer <jwt-token>
@@ -202,15 +265,458 @@ Content-Type: application/json
 }
 ```
 
-#### Get User Progress (Protected)
+### Get User Progress
 ```http
 GET /api/v1/quests/progress
 Authorization: Bearer <jwt-token>
 ```
 
-### Admin Endpoints (Admin Role Required)
+---
 
-#### Create Quest
+## 👥 Friend System
+
+### Get Friends List
+```http
+GET /api/v1/friends
+Authorization: Bearer <jwt-token>
+```
+
+### Send Friend Request
+```http
+POST /api/v1/friends/:username/add
+Authorization: Bearer <jwt-token>
+```
+
+### Accept Friend Request
+```http
+POST /api/v1/friends/:username/accept
+Authorization: Bearer <jwt-token>
+```
+
+### Remove Friend
+```http
+DELETE /api/v1/friends/:username/remove
+Authorization: Bearer <jwt-token>
+```
+
+### Get Online Friends
+```http
+GET /api/v1/friends/online
+Authorization: Bearer <jwt-token>
+```
+
+---
+
+## 🏆 Leaderboard System
+
+### Top Players by Coins
+```http
+GET /api/v1/leaderboard/coins
+```
+
+### Top Players by EXP
+```http
+GET /api/v1/leaderboard/exp
+```
+
+### Top Players by Tasks Completed
+```http
+GET /api/v1/leaderboard/tasks
+```
+
+---
+
+## 🛒 Shop & Economy
+
+### Get Shop Items
+```http
+GET /api/v1/shop/items?page=1&per_page=10
+Authorization: Bearer <jwt-token>
+```
+
+### Buy Item
+```http
+POST /api/v1/shop/items/:id/buy
+Authorization: Bearer <jwt-token>
+Content-Type: application/json
+
+{
+  "quantity": 1
+}
+```
+
+### Sell Item
+```http
+POST /api/v1/shop/items/:id/sell
+Authorization: Bearer <jwt-token>
+Content-Type: application/json
+
+{
+  "quantity": 1
+}
+```
+
+---
+
+## 📦 Inventory Management
+
+### Get User Inventory
+```http
+GET /api/v1/inventory
+Authorization: Bearer <jwt-token>
+```
+
+### Get Specific Item
+```http
+GET /api/v1/inventory/:id
+Authorization: Bearer <jwt-token>
+```
+
+### Use Item
+```http
+POST /api/v1/inventory/use/:id
+Authorization: Bearer <jwt-token>
+```
+
+### Equip Item
+```http
+POST /api/v1/inventory/equip/:id
+Authorization: Bearer <jwt-token>
+```
+
+### Unequip Item
+```http
+POST /api/v1/inventory/unequip/:id
+Authorization: Bearer <jwt-token>
+```
+
+---
+
+## 🔔 Notifications
+
+### Get All Notifications
+```http
+GET /api/v1/notifications
+Authorization: Bearer <jwt-token>
+```
+
+### Mark Notification as Read
+```http
+POST /api/v1/notifications/:id/read
+Authorization: Bearer <jwt-token>
+```
+
+### Mark All as Read
+```http
+POST /api/v1/notifications/mark-read
+Authorization: Bearer <jwt-token>
+```
+
+---
+
+## 💬 Messaging System
+
+### Send Direct Message
+```http
+POST /api/v1/messages/:username/send
+Authorization: Bearer <jwt-token>
+Content-Type: application/json
+
+{
+  "message": "Hello there!"
+}
+```
+
+### Get Conversations
+```http
+GET /api/v1/messages/conversations
+Authorization: Bearer <jwt-token>
+```
+
+---
+
+## 🏆 Achievements & Badges
+
+### Get User Achievements
+```http
+GET /api/v1/achievements
+Authorization: Bearer <jwt-token>
+```
+
+### Get User Badges
+```http
+GET /api/v1/badges
+Authorization: Bearer <jwt-token>
+```
+
+---
+
+## 🧠 Skill System
+
+### Get All Skills
+```http
+GET /api/v1/skills
+Authorization: Bearer <jwt-token>
+```
+
+### Upgrade Skill
+```http
+POST /api/v1/skills/:id/upgrade
+Authorization: Bearer <jwt-token>
+```
+
+---
+
+## 🏰 Guild System
+
+### Create Guild
+```http
+POST /api/v1/guilds
+Authorization: Bearer <jwt-token>
+Content-Type: application/json
+
+{
+  "name": "Code Warriors",
+  "description": "Elite programmers unite!",
+  "is_public": true
+}
+```
+
+### Get All Guilds
+```http
+GET /api/v1/guilds?page=1&per_page=10
+```
+
+### Get Guild Details
+```http
+GET /api/v1/guilds/:id
+Authorization: Bearer <jwt-token>
+```
+
+### Join Guild
+```http
+POST /api/v1/guilds/:id/join
+Authorization: Bearer <jwt-token>
+```
+
+### Leave Guild
+```http
+POST /api/v1/guilds/:id/leave
+Authorization: Bearer <jwt-token>
+```
+
+### Invite to Guild
+```http
+POST /api/v1/guilds/:id/invite/:username
+Authorization: Bearer <jwt-token>
+```
+
+### Kick from Guild
+```http
+POST /api/v1/guilds/:id/kick/:username
+Authorization: Bearer <jwt-token>
+```
+
+---
+
+## 🎪 Event System
+
+### Get Active Events
+```http
+GET /api/v1/events
+```
+
+### Get Event Details
+```http
+GET /api/v1/events/:id
+Authorization: Bearer <jwt-token>
+```
+
+### Join Event
+```http
+POST /api/v1/events/:id/join
+Authorization: Bearer <jwt-token>
+```
+
+### Complete Event
+```http
+POST /api/v1/events/:id/complete
+Authorization: Bearer <jwt-token>
+```
+
+---
+
+## 🧪 Crafting System
+
+### Get Crafting Recipes
+```http
+GET /api/v1/crafting/recipes
+Authorization: Bearer <jwt-token>
+```
+
+### Execute Crafting
+```http
+POST /api/v1/crafting/:id/execute
+Authorization: Bearer <jwt-token>
+```
+
+---
+
+## 🧩 Mini Games
+
+### Get Mini Games List
+```http
+GET /api/v1/minigames
+Authorization: Bearer <jwt-token>
+```
+
+### Start Mini Game
+```http
+POST /api/v1/minigames/:id/start
+Authorization: Bearer <jwt-token>
+```
+
+### Submit Mini Game Result
+```http
+POST /api/v1/minigames/:id/submit
+Authorization: Bearer <jwt-token>
+Content-Type: application/json
+
+{
+  "answers": ["answer1", "answer2"],
+  "score": 85,
+  "time_taken": 120
+}
+```
+
+---
+
+## 🎁 Daily Rewards
+
+### Check Daily Reward Status
+```http
+GET /api/v1/rewards/daily
+Authorization: Bearer <jwt-token>
+```
+
+### Claim Daily Reward
+```http
+POST /api/v1/rewards/daily/claim
+Authorization: Bearer <jwt-token>
+```
+
+---
+
+## 🏪 Marketplace
+
+### Get Marketplace Listings
+```http
+GET /api/v1/marketplace?page=1&per_page=10
+```
+
+### Create Listing
+```http
+POST /api/v1/marketplace
+Authorization: Bearer <jwt-token>
+Content-Type: application/json
+
+{
+  "item_name": "Advanced JavaScript Guide",
+  "description": "Comprehensive JS tutorial",
+  "price": 500,
+  "quantity": 1
+}
+```
+
+### Buy from Marketplace
+```http
+POST /api/v1/marketplace/:id/buy
+Authorization: Bearer <jwt-token>
+Content-Type: application/json
+
+{
+  "quantity": 1
+}
+```
+
+---
+
+## 📚 Tutorial System
+
+### Get Available Tutorials
+```http
+GET /api/v1/tutorials
+Authorization: Bearer <jwt-token>
+```
+
+### Start Tutorial
+```http
+POST /api/v1/tutorials/:id/start
+Authorization: Bearer <jwt-token>
+```
+
+### Complete Tutorial
+```http
+POST /api/v1/tutorials/:id/complete
+Authorization: Bearer <jwt-token>
+```
+
+---
+
+## 📊 Statistics
+
+### Get Personal Statistics
+```http
+GET /api/v1/stats/me
+Authorization: Bearer <jwt-token>
+```
+
+---
+
+## 🛡️ Admin Endpoints
+
+### Get All Users
+```http
+GET /api/v1/admin/users?page=1&per_page=10
+Authorization: Bearer <admin-jwt-token>
+```
+
+### Ban User
+```http
+PUT /api/v1/admin/users/:id/ban
+Authorization: Bearer <admin-jwt-token>
+Content-Type: application/json
+
+{
+  "reason": "Violation of terms",
+  "duration": 7
+}
+```
+
+### Change User Role
+```http
+PUT /api/v1/admin/users/:id/role
+Authorization: Bearer <admin-jwt-token>
+Content-Type: application/json
+
+{
+  "role": "admin"
+}
+```
+
+### Get System Statistics
+```http
+GET /api/v1/admin/stats
+Authorization: Bearer <admin-jwt-token>
+```
+
+### Get Audit Logs
+```http
+GET /api/v1/admin/logs?page=1&per_page=50
+Authorization: Bearer <admin-jwt-token>
+```
+
+### Create Quest (Admin)
 ```http
 POST /api/v1/admin/quests
 Authorization: Bearer <admin-jwt-token>
@@ -229,40 +735,51 @@ Content-Type: application/json
 }
 ```
 
-#### Update Quest
-```http
-PUT /api/v1/admin/quests/:id
-Authorization: Bearer <admin-jwt-token>
-Content-Type: application/json
-
-{
-  "title": "Updated Quest Title",
-  "description": "Updated description",
-  // ... other fields
-}
-```
-
-#### Delete Quest
-```http
-DELETE /api/v1/admin/quests/:id
-Authorization: Bearer <admin-jwt-token>
-```
+---
 
 ## 🗄 Database Schema
 
 ### Core Models
 
 - **User**: Player accounts with authentication and game stats
+- **Friendship**: Friend relationships and status
+- **OnlineUser**: Track user online status
 - **Inventory**: Player items (tools, code snippets, resources)
 - **Quest**: Available quests with requirements and rewards
 - **UserQuestProgress**: Player progress on specific quests
 - **NPC**: Non-player characters with dialogue and locations
+- **NPCRelationship**: Player relationships with NPCs
 - **DailyTask**: Daily challenges for players
 - **UserDailyTaskProgress**: Player completion of daily tasks
 - **Achievement**: Unlockable achievements with conditions
 - **UserAchievement**: Player's unlocked achievements
+- **Badge**: Visual rewards and recognition
+- **UserBadge**: Player's earned badges
+- **Skill**: Available skills and upgrades
+- **UserSkill**: Player's skill progression
 - **StoryProgress**: Player's story chapter progress
 - **CodeBattle**: Coding challenges and battles
+- **MiniGame**: Mini games and coding challenges
+- **MiniGameSession**: Player game sessions
+- **ShopItem**: Items available for purchase
+- **UserPurchase**: Purchase history
+- **CraftingRecipe**: Item crafting recipes
+- **CraftingSession**: Active crafting sessions
+- **DailyReward**: Daily login rewards
+- **UserDailyReward**: Player's claimed rewards
+- **LoginStreak**: Player login streaks
+- **Event**: Time-based events and festivals
+- **EventParticipant**: Event participation
+- **Guild**: Player communities
+- **GuildMember**: Guild membership
+- **GuildInvitation**: Guild invitations
+- **MarketplaceListing**: Player-to-player item sales
+- **MarketplaceTransaction**: Marketplace transactions
+- **Tutorial**: Learning content
+- **UserTutorialProgress**: Tutorial completion
+- **Notification**: System notifications
+- **UserStatistics**: Player analytics
+- **DailyStatistics**: Daily player metrics
 
 ## 🔧 Middleware
 
@@ -273,179 +790,63 @@ Authorization: Bearer <admin-jwt-token>
 - **Error Handling**: Centralized error handling
 - **Recovery**: Panic recovery
 
-## 🧪 Full Routes.go
-func SetupRoutes(app *fiber.App, cfg *config.Config) {
-	// Initialize services
-	authService := services.NewAuthService(cfg)
-	questService := services.NewQuestService()
-
-	// Initialize handlers
-	authHandler := handlers.NewAuthHandler(authService)
-	questHandler := handlers.NewQuestHandler(questService)
-
-	// API v1 group
-	api := app.Group("/api/v1")
-
-	// Public auth routes
-	auth := api.Group("/auth")
-	auth.Post("/register", authHandler.Register)
-	auth.Post("/login", authHandler.Login)
-
-	// Protected auth routes
-	authProtected := auth.Group("/", middleware.AuthMiddleware(cfg))
-	authProtected.Get("/me", authHandler.GetProfile)
-	authProtected.Put("/profile", authHandler.UpdateProfile)
-	authProtected.Post("/refresh", authHandler.RefreshToken)
-
-	// Protected quest routes
-	quests := api.Group("/quests", middleware.AuthMiddleware(cfg))
-	quests.Get("/", questHandler.GetQuests)
-	quests.Get("/:id", questHandler.GetQuestByID)
-	quests.Post("/:id/start", questHandler.StartQuest)
-	quests.Post("/:id/complete", questHandler.CompleteQuest)
-	quests.Get("/progress", questHandler.GetUserProgress)
-
-	// Admin quest routes
-	adminQuests := api.Group("/admin/quests", middleware.AuthMiddleware(cfg), middleware.RequireRole("admin"))
-	adminQuests.Post("/", questHandler.CreateQuest)
-	adminQuests.Put("/:id", questHandler.UpdateQuest)
-	adminQuests.Delete("/:id", questHandler.DeleteQuest)
-
-	// Health check
-	api.Get("/health", func(c *fiber.Ctx) error {
-		return c.JSON(fiber.Map{
-			"status": "ok",
-			"message": "Code Valley API is running",
-		})
-	})
-}
-
-
-```
-
 ## 📈 Performance Tips
 
-1. **Database Indexing**: Add indexes on frequently queried columns
-2. **Connection Pooling**: Configure appropriate connection pool settings
-3. **Caching**: Implement Redis for session management and caching
-4. **Pagination**: Always use pagination for list endpoints
-5. **Rate Limiting**: Implement appropriate rate limits
+1. **Database Indexing**: Indexes on frequently queried columns
+2. **Connection Pooling**: Optimized connection pool settings
+3. **WebSocket Scaling**: Horizontal scaling with Redis pub/sub
+4. **Caching**: Redis for session management and caching
+5. **Pagination**: Always use pagination for list endpoints
+6. **Rate Limiting**: Appropriate rate limits per endpoint
 
+## 🧪 Testing
 
-prompt frontend
-1. pisahkan dashboard admin dan player
-2. buatkan halaman npc, progres, invectory, portfolio, map dan profile, serta halaman lain yang dibutuhkan
-3. sesuaikan websocket dengan backend supaya realtime tanpa refresh
-4. perbaiki responsive halaman pada layar mobile
-5, sesuaikan fitur dan routes api nya dengan dokumenasi backend berikut :
-
-promp backend 
-1. buatkan websocket realtime tanpa refresh
-2. perbaiki query tunning dan normalisasi
-3. Route Tambahan :
-1. Friend System / Social
-Biar player bisa saling bantu atau kompetitif:
-
-http
+Run tests with:
+```bash
+go test ./...
 ```
-Edit
-GET    /api/v1/friends                       # List teman
-POST   /api/v1/friends/:username/add         # Kirim permintaan pertemanan
-POST   /api/v1/friends/:username/accept      # Terima permintaan
-DELETE /api/v1/friends/:username/remove      # Hapus teman
-GET    /api/v1/friends/online                # Teman yang sedang online
-Gunanya untuk leaderboard, bantuan quest, atau PvP code battle.
 
-2. Leaderboard / Ranking
-Fitur kompetitif ringan:
+## 🚀 Deployment
 
-http
+### Docker Deployment
+```dockerfile
+FROM golang:1.21-alpine AS builder
+WORKDIR /app
+COPY . .
+RUN go mod download
+RUN go build -o main cmd/server/main.go
+
+FROM alpine:latest
+RUN apk --no-cache add ca-certificates
+WORKDIR /root/
+COPY --from=builder /app/main .
+CMD ["./main"]
 ```
-Edit
-GET /api/v1/leaderboard/coins       # Top player by coins
-GET /api/v1/leaderboard/exp         # Top player by EXP
-GET /api/v1/leaderboard/tasks       # Top by daily task completion
-3. Shop & Economy
-Biar hasil kerja coding bisa dibelanjakan.
 
-http
+### Environment Setup
+```bash
+# Production environment variables
+export DB_HOST=your-db-host
+export DB_PASSWORD=your-secure-password
+export JWT_SECRET=your-super-secure-jwt-secret
 ```
-Edit
-GET    /api/v1/shop/items                 # Lihat item toko
-POST   /api/v1/shop/items/:id/buy         # Beli item
-POST   /api/v1/shop/items/:id/sell        # Jual item dari inventory
-Bisa integrasi dengan inventory dan coin system.
 
-4. Mailbox / Notifications
-Buat feedback event atau info penting dari NPC/mentor:
+## 📝 Contributing
 
-http
-```
-Edit
-GET    /api/v1/notifications              # Semua notifikasi
-POST   /api/v1/notifications/mark-read   # Tandai sebagai dibaca
-5. Mentorship / NPC Relationship
-Interaksi sosial ala Stardew Valley.
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-http
-```
-Edit
-GET    /api/v1/npc/:id/profile            # Lihat profil NPC
-POST   /api/v1/npc/:id/interact           # Interaksi (berbincang, beri hadiah)
-GET    /api/v1/npc/:id/relationship       # Level kedekatan dengan NPC
-Semakin akrab, bisa dapat quest eksklusif atau unlock skill.
+## 📄 License
 
-6. Skill Tree / Upgrade
-Biar player merasa progres:
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-http
-```
-Edit
-GET    /api/v1/skills                      # Lihat semua skill
-POST   /api/v1/skills/:id/unlock           # Unlock/upgrade skill
-Misalnya: "Debugging +10%", "Faster Compile Time", dll.
+## 🤝 Support
 
-7. Mini Games / Coding Challenges
-Untuk variasi gameplay:
+For support, email support@codevalley.com or join our Discord server.
 
-http
-```
-Edit
-GET    /api/v1/minigames/list             # Lihat list mini games
-POST   /api/v1/minigames/:id/start        # Mulai game
-POST   /api/v1/minigames/:id/submit       # Kirim hasil
-Bisa coding quiz, logic puzzle, regex challenge.
+---
 
-8. Item Crafting / Code Combining
-Seperti gabung script jadi alat baru.
-
-http
-```
-Edit
-GET    /api/v1/crafting/recipes           # Semua resep
-POST   /api/v1/crafting/execute           # Craft item
-9. Daily Login Reward / Calendar System
-Supaya player rajin main tiap hari.
-
-http
-```
-Edit
-GET    /api/v1/rewards/daily              # Cek status harian
-POST   /api/v1/rewards/daily/claim        # Ambil reward harian
-10. Event System / Time-based Missions
-Mirip festival di Stardew atau "Hackathon Week".
-
-http
-```
-Edit
-GET    /api/v1/events/active              # Event aktif sekarang
-GET    /api/v1/events/:id                 # Detail event
-POST   /api/v1/events/:id/join            # Gabung event
-
-
-Buatkan Fitur juga fitur berikut :
-api/v1/badges	Visual penghargaan, mirip achievement
-api/v1/guilds	Buat guild/komunitas programmer, unlock fitur kooperatif
-api/v1/marketplace	Jual beli script antar user
-api/v1/tutorials	Panduan coding, bisa unlock setelah quest tertentu
-api/v1/statistics	Statistik performa user (waktu main, progress, dsb)
+**Happy Coding in Code Valley! 🏘️💻**

@@ -17,6 +17,9 @@ func SetupRoutes(app *fiber.App, cfg *config.Config) {
 	friendService := services.NewFriendService()
 	leaderboardService := services.NewLeaderboardService()
 	shopService := services.NewShopService()
+	notificationService := services.NewNotificationService()
+	inventoryService := services.NewInventoryService()
+	adminService := services.NewAdminService()
 
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(authService)
@@ -24,6 +27,9 @@ func SetupRoutes(app *fiber.App, cfg *config.Config) {
 	friendHandler := handlers.NewFriendHandler(friendService)
 	leaderboardHandler := handlers.NewLeaderboardHandler(leaderboardService)
 	shopHandler := handlers.NewShopHandler(shopService)
+	notificationHandler := handlers.NewNotificationHandler(notificationService)
+	inventoryHandler := handlers.NewInventoryHandler(inventoryService)
+	adminHandler := handlers.NewAdminHandler(adminService)
 
 	// WebSocket endpoint
 	app.Get("/ws", websocket.WebSocketUpgrade(cfg))
@@ -41,6 +47,9 @@ func SetupRoutes(app *fiber.App, cfg *config.Config) {
 	authProtected.Get("/me", authHandler.GetProfile)
 	authProtected.Put("/profile", authHandler.UpdateProfile)
 	authProtected.Post("/refresh", authHandler.RefreshToken)
+	authProtected.Post("/logout", authHandler.Logout)
+	authProtected.Post("/avatar", authHandler.UploadAvatar)
+	authProtected.Delete("/delete", authHandler.DeleteAccount)
 
 	// Protected quest routes
 	quests := api.Group("/quests", middleware.AuthMiddleware(cfg))
@@ -75,6 +84,28 @@ func SetupRoutes(app *fiber.App, cfg *config.Config) {
 	shop.Get("/items", shopHandler.GetShopItems)
 	shop.Post("/items/:id/buy", shopHandler.BuyItem)
 	shop.Post("/items/:id/sell", shopHandler.SellItem)
+
+	// Notification routes
+	notifications := api.Group("/notifications", middleware.AuthMiddleware(cfg))
+	notifications.Get("/", notificationHandler.GetNotifications)
+	notifications.Post("/:id/read", notificationHandler.MarkAsRead)
+	notifications.Post("/mark-read", notificationHandler.MarkAllAsRead)
+
+	// Inventory routes
+	inventory := api.Group("/inventory", middleware.AuthMiddleware(cfg))
+	inventory.Get("/", inventoryHandler.GetInventory)
+	inventory.Get("/:id", inventoryHandler.GetItem)
+	inventory.Post("/use/:id", inventoryHandler.UseItem)
+	inventory.Post("/equip/:id", inventoryHandler.EquipItem)
+	inventory.Post("/unequip/:id", inventoryHandler.UnequipItem)
+
+	// Admin routes
+	admin := api.Group("/admin", middleware.AuthMiddleware(cfg), middleware.RequireRole("admin"))
+	admin.Get("/users", adminHandler.GetAllUsers)
+	admin.Put("/users/:id/ban", adminHandler.BanUser)
+	admin.Put("/users/:id/role", adminHandler.ChangeUserRole)
+	admin.Get("/stats", adminHandler.GetSystemStats)
+	admin.Get("/logs", adminHandler.GetAuditLogs)
 
 	// Health check
 	api.Get("/health", func(c *fiber.Ctx) error {
