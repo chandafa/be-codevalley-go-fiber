@@ -3,7 +3,8 @@ package websocket
 import (
 	"encoding/json"
 	"log"
-	"net/http"
+
+	// "net/http"
 	"time"
 
 	"github.com/gofiber/contrib/websocket"
