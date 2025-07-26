@@ -7,6 +7,7 @@ import (
 	"code-valley-api/internal/database"
 	"code-valley-api/internal/middleware"
 	"code-valley-api/internal/routes"
+	"code-valley-api/internal/websocket"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/recover"
@@ -25,6 +26,9 @@ func main() {
 	if err := database.AutoMigrate(); err != nil {
 		log.Fatal("Failed to run migrations:", err)
 	}
+
+	// Initialize WebSocket
+	websocket.InitializeWebSocket()
 
 	// Create Fiber app
 	app := fiber.New(fiber.Config{
