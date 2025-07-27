@@ -3,7 +3,6 @@ package websocket
 import (
 	"encoding/json"
 	"log"
-	"code-valley-api/internal/services"
 
 	// "net/http"
 	"time"
@@ -24,16 +23,14 @@ type Client struct {
 	conn   *websocket.Conn
 	send   chan []byte
 	UserID uuid.UUID
-	worldService *services.WorldService
 }
 
-func NewClient(hub *Hub, conn *websocket.Conn, userID uuid.UUID, worldService *services.WorldService) *Client {
+func NewClient(hub *Hub, conn *websocket.Conn, userID uuid.UUID) *Client {
 	return &Client{
-		hub:          hub,
-		conn:         conn,
-		send:         make(chan []byte, 256),
-		UserID:       userID,
-		worldService: worldService,
+		hub:    hub,
+		conn:   conn,
+		send:   make(chan []byte, 256),
+		UserID: userID,
 	}
 }
 
@@ -129,22 +126,8 @@ func (c *Client) handleMessage(msg Message) {
 			posY := int(moveData["pos_y"].(float64))
 			direction := moveData["direction"].(string)
 			
-			err := c.worldService.MovePlayer(c.UserID, posX, posY, direction)
-			if err != nil {
-				// Send error back to client
-				response := Message{
-					Type: "movement_error",
-					Data: map[string]interface{}{
-						"error": err.Error(),
-					},
-				}
-				data, _ := json.Marshal(response)
-				select {
-				case c.send <- data:
-				default:
-					close(c.send)
-				}
-			}
+			// Broadcast movement to hub for processing
+			c.hub.HandlePlayerMove(c.UserID, posX, posY, direction)
 		}
 
 	case "player_interact":
@@ -153,26 +136,8 @@ func (c *Client) handleMessage(msg Message) {
 			targetX := int(interactData["target_x"].(float64))
 			targetY := int(interactData["target_y"].(float64))
 			
-			result, err := c.worldService.InteractWithObject(c.UserID, targetX, targetY)
-			
-			response := Message{
-				Type: "interaction_result",
-				Data: map[string]interface{}{
-					"success": err == nil,
-					"result":  result,
-				},
-			}
-			
-			if err != nil {
-				response.Data.(map[string]interface{})["error"] = err.Error()
-			}
-			
-			data, _ := json.Marshal(response)
-			select {
-			case c.send <- data:
-			default:
-				close(c.send)
-			}
+			// Broadcast interaction to hub for processing
+			c.hub.HandlePlayerInteract(c.UserID, targetX, targetY)
 		}
 
 	case "chat":

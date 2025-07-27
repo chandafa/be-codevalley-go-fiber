@@ -36,6 +36,10 @@ func main() {
 	gameClockService.Start()
 	defer gameClockService.Stop()
 
+	// Start WebSocket handler service
+	wsHandlerService := services.NewWebSocketHandlerService()
+	wsHandlerService.Start()
+
 	// Create Fiber app
 	app := fiber.New(fiber.Config{
 		ErrorHandler: func(c *fiber.Ctx, err error) error {

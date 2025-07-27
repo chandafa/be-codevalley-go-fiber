@@ -15,6 +15,23 @@ type Hub struct {
 	register   chan *Client
 	unregister chan *Client
 	mutex      sync.RWMutex
+	
+	// Channels for handling game events
+	playerMoveChannel chan PlayerMoveEvent
+	playerInteractChannel chan PlayerInteractEvent
+}
+
+type PlayerMoveEvent struct {
+	UserID    uuid.UUID
+	PosX      int
+	PosY      int
+	Direction string
+}
+
+type PlayerInteractEvent struct {
+	UserID  uuid.UUID
+	TargetX int
+	TargetY int
 }
 
 type MapClients struct {
@@ -49,11 +66,13 @@ type PlayerInteractMessage struct {
 
 func NewHub() *Hub {
 	return &Hub{
-		clients:     make(map[*Client]bool),
-		userClients: make(map[uuid.UUID]*Client),
-		broadcast:   make(chan []byte, 256),
-		register:    make(chan *Client),
-		unregister:  make(chan *Client),
+		clients:               make(map[*Client]bool),
+		userClients:           make(map[uuid.UUID]*Client),
+		broadcast:             make(chan []byte, 256),
+		register:              make(chan *Client),
+		unregister:            make(chan *Client),
+		playerMoveChannel:     make(chan PlayerMoveEvent, 256),
+		playerInteractChannel: make(chan PlayerInteractEvent, 256),
 	}
 }
 
@@ -218,4 +237,37 @@ func (h *Hub) notifyFriendsOnlineStatus(userID uuid.UUID, isOnline bool) {
 	}
 	
 	h.SendToAll(message)
+}
+
+func (h *Hub) HandlePlayerMove(userID uuid.UUID, posX, posY int, direction string) {
+	select {
+	case h.playerMoveChannel <- PlayerMoveEvent{
+		UserID:    userID,
+		PosX:      posX,
+		PosY:      posY,
+		Direction: direction,
+	}:
+	default:
+		log.Println("Player move channel is full")
+	}
+}
+
+func (h *Hub) HandlePlayerInteract(userID uuid.UUID, targetX, targetY int) {
+	select {
+	case h.playerInteractChannel <- PlayerInteractEvent{
+		UserID:  userID,
+		TargetX: targetX,
+		TargetY: targetY,
+	}:
+	default:
+		log.Println("Player interact channel is full")
+	}
+}
+
+func (h *Hub) GetPlayerMoveChannel() <-chan PlayerMoveEvent {
+	return h.playerMoveChannel
+}
+
+func (h *Hub) GetPlayerInteractChannel() <-chan PlayerInteractEvent {
+	return h.playerInteractChannel
 }

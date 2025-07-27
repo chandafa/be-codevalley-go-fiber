@@ -8,7 +8,6 @@ import (
 
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
-	"github.com/google/uuid"
 )
 
 var GlobalHub *Hub
@@ -35,8 +34,7 @@ func WebSocketUpgrade(cfg *config.Config) fiber.Handler {
 			return
 		}
 
-		worldService := services.NewWorldService()
-		client := NewClient(GlobalHub, c, claims.UserID, worldService)
+		client := NewClient(GlobalHub, c, claims.UserID)
 		GlobalHub.register <- client
 
 		go client.WritePump()
