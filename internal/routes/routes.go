@@ -20,6 +20,7 @@ func SetupRoutes(app *fiber.App, cfg *config.Config) {
 	notificationService := services.NewNotificationService()
 	inventoryService := services.NewInventoryService()
 	adminService := services.NewAdminService()
+	worldService := services.NewWorldService()
 
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(authService)
@@ -30,12 +31,27 @@ func SetupRoutes(app *fiber.App, cfg *config.Config) {
 	notificationHandler := handlers.NewNotificationHandler(notificationService)
 	inventoryHandler := handlers.NewInventoryHandler(inventoryService)
 	adminHandler := handlers.NewAdminHandler(adminService)
+	worldHandler := handlers.NewWorldHandler(worldService)
 
 	// WebSocket endpoint
 	app.Get("/ws", websocket.WebSocketUpgrade(cfg))
 
 	// API v1 group
 	api := app.Group("/api/v1")
+
+	// World/Map routes
+	world := api.Group("/world", middleware.AuthMiddleware(cfg))
+	world.Get("/maps/:map_name/state", worldHandler.GetMapState)
+	world.Get("/position", worldHandler.GetPlayerPosition)
+	world.Post("/teleport", worldHandler.TeleportPlayer)
+	world.Get("/time", worldHandler.GetGameTime)
+	
+	// Code farming routes
+	farming := api.Group("/farming", middleware.AuthMiddleware(cfg))
+	farming.Get("/", worldHandler.GetCodeFarms)
+	farming.Post("/plant", worldHandler.PlantCode)
+	farming.Post("/:id/water", worldHandler.WaterCode)
+	farming.Post("/:id/harvest", worldHandler.HarvestCode)
 
 	// Public auth routes
 	auth := api.Group("/auth")

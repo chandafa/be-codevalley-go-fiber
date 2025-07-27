@@ -7,6 +7,7 @@ import (
 	"code-valley-api/internal/database"
 	"code-valley-api/internal/middleware"
 	"code-valley-api/internal/routes"
+	"code-valley-api/internal/services"
 	"code-valley-api/internal/websocket"
 
 	"github.com/gofiber/fiber/v2"
@@ -29,6 +30,11 @@ func main() {
 
 	// Initialize WebSocket
 	websocket.InitializeWebSocket()
+
+	// Start game clock service
+	gameClockService := services.NewGameClockService()
+	gameClockService.Start()
+	defer gameClockService.Stop()
 
 	// Create Fiber app
 	app := fiber.New(fiber.Config{

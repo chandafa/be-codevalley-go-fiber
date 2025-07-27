@@ -1,8 +1,21 @@
 # Code Valley - RPG Life Simulation Game API
 
-A complete REST API backend for "Code Valley" - an RPG life simulation game where players are junior programmers building careers in a coding village, inspired by Stardew Valley.
+A complete REST API backend for "Code Valley" - an RPG life simulation game where players are junior programmers building careers in a coding village, inspired by Stardew Valley. Features real-time world simulation, position-based interactions, and a living game world with NPCs, farming, and time progression.
 
 ## 🚀 Features
+
+### 🌍 **World Simulation & Real-time Interaction**
+- **Position-based World**: Players move in real-time through different maps (Village, Code Mine, Data Farm)
+- **Real-time WebSocket**: Live position updates, world interactions, and multiplayer visibility
+- **Interactive Objects**: Trees to chop, rocks to mine, chests to loot, servers to access
+- **NPC Schedules**: NPCs move around based on time of day and have daily routines
+- **Game Clock**: Dynamic day/night cycle with seasons affecting gameplay
+
+### 🚜 **Code Farming System**
+- **Plant & Grow Code**: Plant algorithm seeds and nurture them into libraries
+- **Watering & Care**: Regular maintenance improves code quality and yield
+- **Harvest Rewards**: Mature code provides coins, EXP, and usable items
+- **Quality System**: Normal, Silver, Gold, and Iridium quality code with different rewards
 
 - **User Management**: Registration, authentication, profile management, avatar upload
 - **Real-time WebSocket**: Live updates for quests, friends, achievements, and more
@@ -130,6 +143,12 @@ ws://localhost:8000/ws?token=YOUR_JWT_TOKEN
 ### WebSocket Events
 
 #### Outgoing Events (Server → Client)
+- `player_position_update`: Real-time player movement
+- `world_object_update`: Changes to world objects (trees chopped, etc.)
+- `npc_position_update`: NPC movement updates
+- `time_update`: Game time progression
+- `season_change`: Seasonal changes in the game world
+- `interaction_result`: Results of player interactions with objects
 - `quest_update`: Quest progress changes
 - `friend_request`: Friend system notifications
 - `achievement_unlocked`: New achievements earned
@@ -141,6 +160,8 @@ ws://localhost:8000/ws?token=YOUR_JWT_TOKEN
 - `notification`: General notifications
 
 #### Incoming Events (Client → Server)
+- `player_move`: Send new player position (x, y, direction)
+- `player_interact`: Interact with objects or NPCs at target position
 - `ping`: Keep connection alive
 - `dm_message`: Send direct message
 - `dm_typing`: Typing indicator
@@ -161,6 +182,93 @@ All API responses follow this structure:
   "message": "descriptive message",
   "data": any | null
 }
+```
+
+---
+
+## 🌍 World & Map System
+
+### Get Map State
+```http
+GET /api/v1/world/maps/:map_name/state
+Authorization: Bearer <jwt-token>
+```
+
+Returns complete map data including:
+- Map layout and dimensions
+- All player positions in the map
+- World objects (trees, rocks, chests, etc.)
+- NPC positions
+- Current game time
+
+### Get Player Position
+```http
+GET /api/v1/world/position
+Authorization: Bearer <jwt-token>
+```
+
+### Teleport Player
+```http
+POST /api/v1/world/teleport
+Authorization: Bearer <jwt-token>
+Content-Type: application/json
+
+{
+  "map_name": "village",
+  "pos_x": 25,
+  "pos_y": 25
+}
+```
+
+### Get Game Time
+```http
+GET /api/v1/world/time
+```
+
+Returns current game time:
+```json
+{
+  "game_year": 1,
+  "game_season": "spring",
+  "game_day": 15,
+  "game_hour": 14,
+  "game_minute": 30
+}
+```
+
+---
+
+## 🚜 Code Farming System
+
+### Get Code Farms
+```http
+GET /api/v1/farming/
+Authorization: Bearer <jwt-token>
+```
+
+### Plant Code
+```http
+POST /api/v1/farming/plant
+Authorization: Bearer <jwt-token>
+Content-Type: application/json
+
+{
+  "plot_x": 5,
+  "plot_y": 3,
+  "code_type": "algorithm"
+}
+```
+
+### Water Code
+```http
+POST /api/v1/farming/:id/water
+Authorization: Bearer <jwt-token>
+```
+
+### Harvest Code
+```http
+POST /api/v1/farming/:id/harvest
+Authorization: Bearer <jwt-token>
 ```
 
 ---

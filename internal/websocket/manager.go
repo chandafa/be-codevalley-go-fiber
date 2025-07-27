@@ -35,7 +35,8 @@ func WebSocketUpgrade(cfg *config.Config) fiber.Handler {
 			return
 		}
 
-		client := NewClient(GlobalHub, c, claims.UserID)
+		worldService := services.NewWorldService()
+		client := NewClient(GlobalHub, c, claims.UserID, worldService)
 		GlobalHub.register <- client
 
 		go client.WritePump()

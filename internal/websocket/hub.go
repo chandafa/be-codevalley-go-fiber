@@ -17,11 +17,34 @@ type Hub struct {
 	mutex      sync.RWMutex
 }
 
+type MapClients struct {
+	clients map[uuid.UUID]map[*Client]bool
+	mutex   sync.RWMutex
+}
+
+var mapClients = &MapClients{
+	clients: make(map[uuid.UUID]map[*Client]bool),
+}
+
 type Message struct {
 	Type    string      `json:"type"`
 	UserID  uuid.UUID   `json:"user_id,omitempty"`
 	Data    interface{} `json:"data"`
 	Target  string      `json:"target,omitempty"` // "all", "user", "friends"
+}
+
+type PlayerMoveMessage struct {
+	Type      string `json:"type"`
+	PosX      int    `json:"pos_x"`
+	PosY      int    `json:"pos_y"`
+	Direction string `json:"direction"`
+}
+
+type PlayerInteractMessage struct {
+	Type    string    `json:"type"`
+	TargetX int       `json:"target_x"`
+	TargetY int       `json:"target_y"`
+	TargetID *uuid.UUID `json:"target_id,omitempty"`
 }
 
 func NewHub() *Hub {
@@ -133,6 +156,54 @@ func (h *Hub) IsUserOnline(userID uuid.UUID) bool {
 	
 	_, exists := h.userClients[userID]
 	return exists
+}
+
+func (h *Hub) AddClientToMap(client *Client, mapID uuid.UUID) {
+	mapClients.mutex.Lock()
+	defer mapClients.mutex.Unlock()
+	
+	if mapClients.clients[mapID] == nil {
+		mapClients.clients[mapID] = make(map[*Client]bool)
+	}
+	mapClients.clients[mapID][client] = true
+}
+
+func (h *Hub) RemoveClientFromMap(client *Client, mapID uuid.UUID) {
+	mapClients.mutex.Lock()
+	defer mapClients.mutex.Unlock()
+	
+	if mapClients.clients[mapID] != nil {
+		delete(mapClients.clients[mapID], client)
+		if len(mapClients.clients[mapID]) == 0 {
+			delete(mapClients.clients, mapID)
+		}
+	}
+}
+
+func BroadcastToMap(mapID uuid.UUID, message Message) {
+	mapClients.mutex.RLock()
+	clients := mapClients.clients[mapID]
+	mapClients.mutex.RUnlock()
+	
+	if clients == nil {
+		return
+	}
+	
+	data, err := json.Marshal(message)
+	if err != nil {
+		log.Printf("Error marshaling message: %v", err)
+		return
+	}
+	
+	for client := range clients {
+		select {
+		case client.send <- data:
+		default:
+			// Client channel is full, remove it
+			close(client.send)
+			delete(clients, client)
+		}
+	}
 }
 
 func (h *Hub) notifyFriendsOnlineStatus(userID uuid.UUID, isOnline bool) {

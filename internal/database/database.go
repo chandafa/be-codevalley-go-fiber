@@ -93,6 +93,13 @@ func AutoMigrate() error {
 		&models.UserTutorialProgress{},
 		&models.UserStatistics{},
 		&models.DailyStatistics{},
+		&models.Map{},
+		&models.PlayerPosition{},
+		&models.WorldObject{},
+		&models.NPCPosition{},
+		&models.NPCSchedule{},
+		&models.GameClock{},
+		&models.CodeFarm{},
 	)
 	if err != nil {
 		return fmt.Errorf("failed to auto-migrate database: %w", err)

@@ -3,6 +3,7 @@ package websocket
 import (
 	"encoding/json"
 	"log"
+	"code-valley-api/internal/services"
 
 	// "net/http"
 	"time"
@@ -23,14 +24,16 @@ type Client struct {
 	conn   *websocket.Conn
 	send   chan []byte
 	UserID uuid.UUID
+	worldService *services.WorldService
 }
 
-func NewClient(hub *Hub, conn *websocket.Conn, userID uuid.UUID) *Client {
+func NewClient(hub *Hub, conn *websocket.Conn, userID uuid.UUID, worldService *services.WorldService) *Client {
 	return &Client{
-		hub:    hub,
-		conn:   conn,
-		send:   make(chan []byte, 256),
-		UserID: userID,
+		hub:          hub,
+		conn:         conn,
+		send:         make(chan []byte, 256),
+		UserID:       userID,
+		worldService: worldService,
 	}
 }
 
@@ -117,6 +120,59 @@ func (c *Client) handleMessage(msg Message) {
 		case c.send <- data:
 		default:
 			close(c.send)
+		}
+
+	case "player_move":
+		// Handle player movement
+		if moveData, ok := msg.Data.(map[string]interface{}); ok {
+			posX := int(moveData["pos_x"].(float64))
+			posY := int(moveData["pos_y"].(float64))
+			direction := moveData["direction"].(string)
+			
+			err := c.worldService.MovePlayer(c.UserID, posX, posY, direction)
+			if err != nil {
+				// Send error back to client
+				response := Message{
+					Type: "movement_error",
+					Data: map[string]interface{}{
+						"error": err.Error(),
+					},
+				}
+				data, _ := json.Marshal(response)
+				select {
+				case c.send <- data:
+				default:
+					close(c.send)
+				}
+			}
+		}
+
+	case "player_interact":
+		// Handle player interaction
+		if interactData, ok := msg.Data.(map[string]interface{}); ok {
+			targetX := int(interactData["target_x"].(float64))
+			targetY := int(interactData["target_y"].(float64))
+			
+			result, err := c.worldService.InteractWithObject(c.UserID, targetX, targetY)
+			
+			response := Message{
+				Type: "interaction_result",
+				Data: map[string]interface{}{
+					"success": err == nil,
+					"result":  result,
+				},
+			}
+			
+			if err != nil {
+				response.Data.(map[string]interface{})["error"] = err.Error()
+			}
+			
+			data, _ := json.Marshal(response)
+			select {
+			case c.send <- data:
+			default:
+				close(c.send)
+			}
 		}
 
 	case "chat":
